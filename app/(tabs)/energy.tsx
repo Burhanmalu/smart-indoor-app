@@ -34,8 +34,8 @@ export default function EnergyScreen() {
   const currentKw = (isACOn ? 2.4 : 0.2) + (isFanOn ? 0.35 : 0.05) + 0.15;
   const dailyKwh = timeframe === 'DAY' ? 24.8 : timeframe === 'WEEK' ? 168.4 : 682.0;
   const energySavedKwh = (dailyKwh * 0.28).toFixed(1);
-  const costSavedDollars = (parseFloat(energySavedKwh) * 0.18).toFixed(2);
-  const co2AvoidedKg = (parseFloat(energySavedKwh) * 0.42).toFixed(1);
+  const costSavedRupees = (parseFloat(energySavedKwh) * 8.50).toFixed(0); // ₹8.50/unit commercial rate
+  const co2AvoidedKg = (parseFloat(energySavedKwh) * 0.71).toFixed(1); // CEA Indian Grid Factor
 
   // Hourly consumption mock bars
   const hourlyBars = [
@@ -136,7 +136,7 @@ export default function EnergyScreen() {
             <Text style={[styles.kpiUnit, { color: theme.colors.textTertiary }]}>kW</Text>
           </View>
           <Text style={[styles.kpiSub, { color: '#34C759' }]}>
-            ⚡ Optimal Efficiency • Real-time ESP32 CT clamp monitoring
+            ⚡ BEE Efficiency Grade A • Commercial Tariff: ₹8.50 / Unit
           </Text>
         </View>
 
@@ -145,13 +145,13 @@ export default function EnergyScreen() {
           <View style={[styles.savingCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.borderLight }]}>
             <MaterialCommunityIcons name="lightning-bolt" size={24} color="#FF9500" />
             <Text style={[styles.savingVal, { color: theme.colors.text }]}>{energySavedKwh} kWh</Text>
-            <Text style={[styles.savingTitle, { color: theme.colors.textSecondary }]}>Energy Saved</Text>
+            <Text style={[styles.savingTitle, { color: theme.colors.textSecondary }]}>Units Saved</Text>
           </View>
 
           <View style={[styles.savingCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.borderLight }]}>
-            <MaterialCommunityIcons name="currency-usd" size={24} color="#34C759" />
-            <Text style={[styles.savingVal, { color: theme.colors.text }]}>${costSavedDollars}</Text>
-            <Text style={[styles.savingTitle, { color: theme.colors.textSecondary }]}>Cost Reduced</Text>
+            <MaterialCommunityIcons name="currency-inr" size={24} color="#34C759" />
+            <Text style={[styles.savingVal, { color: theme.colors.text }]}>₹{costSavedRupees}</Text>
+            <Text style={[styles.savingTitle, { color: theme.colors.textSecondary }]}>Bill Saved</Text>
           </View>
 
           <View style={[styles.savingCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.borderLight }]}>

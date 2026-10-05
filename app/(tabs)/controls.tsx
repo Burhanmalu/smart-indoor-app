@@ -52,11 +52,14 @@ export default function ControlsScreen() {
     controlMode: 'AUTO' as ControlMode,
   };
 
+  const isACOn = (ac.status ? ac.status === 'ON' : true) && (ac.power !== false);
+  const isFanOn = (fan.status ? fan.status === 'ON' : true) && (fan.power !== false);
+
   // AC Actions
   const handleACTempChange = (delta: number) => {
-    const newTemp = Math.min(30, Math.max(16, ac.targetTemp + delta));
+    const newTemp = Math.min(30, Math.max(16, (ac.targetTemp || ac.temperature || 24) + delta));
     services.device.setACTemperature(hallId, newTemp);
-    useDeviceStore.getState().updateAC(hallId, { targetTemp: newTemp });
+    useDeviceStore.getState().updateAC(hallId, { targetTemp: newTemp, temperature: newTemp } as any);
   };
 
   const handleACMode = (mode: ACMode) => {
@@ -71,29 +74,29 @@ export default function ControlsScreen() {
 
   const handleACPower = (power: boolean) => {
     services.device.setACPower(hallId, power);
-    useDeviceStore.getState().updateAC(hallId, { power });
+    useDeviceStore.getState().updateAC(hallId, { power, status: power ? 'ON' : 'OFF' } as any);
   };
 
   // Fan Actions
   const handleFanPower = (power: boolean) => {
     services.device.setFanPower(hallId, power);
-    useDeviceStore.getState().updateFan(hallId, { power });
+    useDeviceStore.getState().updateFan(hallId, { power, status: power ? 'ON' : 'OFF' } as any);
   };
 
   const handleFanSpeed = (speed: number) => {
     services.device.setFanSpeed(hallId, speed);
-    useDeviceStore.getState().updateFan(hallId, { speed });
+    useDeviceStore.getState().updateFan(hallId, { speed } as any);
   };
 
   const handleFanOscillate = (oscillate: boolean) => {
     services.device.setFanOscillation(hallId, oscillate);
-    useDeviceStore.getState().updateFan(hallId, { oscillate });
+    useDeviceStore.getState().updateFan(hallId, { oscillate } as any);
   };
 
   // Curtain Actions
   const handleCurtainPos = (position: number) => {
     services.device.setCurtainPosition(hallId, position);
-    useDeviceStore.getState().updateCurtain(hallId, { position, targetPosition: position });
+    useDeviceStore.getState().updateCurtain(hallId, { position, targetPosition: position } as any);
   };
 
   const handleDeviceMode = (device: 'ac' | 'fan' | 'curtain', mode: ControlMode) => {
@@ -128,16 +131,25 @@ export default function ControlsScreen() {
           </View>
         </View>
 
-        <TouchableOpacity
-          onPress={toggleTheme}
-          style={[styles.themeBtn, { backgroundColor: theme.colors.inputBackground }]}
-        >
-          <MaterialCommunityIcons
-            name={isDark ? 'weather-night' : 'white-balance-sunny'}
-            size={18}
-            color={isDark ? '#FFD60A' : '#FF9500'}
-          />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <TouchableOpacity
+            onPress={toggleTheme}
+            style={[styles.themeBtn, { backgroundColor: theme.colors.inputBackground }]}
+          >
+            <MaterialCommunityIcons
+              name={isDark ? 'weather-night' : 'white-balance-sunny'}
+              size={18}
+              color={isDark ? '#FFD60A' : '#FF9500'}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => router.push('/demo' as any)}
+            style={[styles.themeBtn, { backgroundColor: theme.colors.primaryGhost }]}
+          >
+            <MaterialCommunityIcons name="lightning-bolt" size={20} color={theme.colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -196,7 +208,7 @@ export default function ControlsScreen() {
                 </Text>
               </TouchableOpacity>
               <Switch
-                value={ac.power}
+                value={isACOn}
                 onValueChange={handleACPower}
                 trackColor={{ false: '#767577', true: theme.colors.primary }}
                 thumbColor="#FFF"
@@ -204,21 +216,21 @@ export default function ControlsScreen() {
             </View>
           </View>
 
-          {ac.power && (
+          {isACOn ? (
             <View style={styles.cardBody}>
               {/* Temperature Dial Controller */}
               <View style={styles.tempControllerRow}>
                 <TouchableOpacity
                   onPress={() => handleACTempChange(-1)}
                   style={[styles.tempBtn, { backgroundColor: theme.colors.inputBackground }]}
-                  disabled={ac.targetTemp <= 16}
+                  disabled={(ac.targetTemp || ac.temperature || 24) <= 16}
                 >
                   <MaterialCommunityIcons name="minus" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
 
                 <View style={styles.tempDisplayBox}>
                   <Text style={[styles.targetTempNum, { color: theme.colors.text }]}>
-                    {ac.targetTemp}
+                    {ac.targetTemp || ac.temperature || 24}
                   </Text>
                   <Text style={[styles.targetTempUnit, { color: theme.colors.textSecondary }]}>°C</Text>
                 </View>
@@ -226,7 +238,7 @@ export default function ControlsScreen() {
                 <TouchableOpacity
                   onPress={() => handleACTempChange(1)}
                   style={[styles.tempBtn, { backgroundColor: theme.colors.inputBackground }]}
-                  disabled={ac.targetTemp >= 30}
+                  disabled={(ac.targetTemp || ac.temperature || 24) >= 30}
                 >
                   <MaterialCommunityIcons name="plus" size={24} color={theme.colors.text} />
                 </TouchableOpacity>
@@ -234,30 +246,33 @@ export default function ControlsScreen() {
 
               {/* Quick Presets */}
               <View style={styles.presetRow}>
-                {[18, 20, 22, 24, 26].map((temp) => (
-                  <TouchableOpacity
-                    key={temp}
-                    onPress={() => {
-                      services.device.setACTemperature(hallId, temp);
-                      useDeviceStore.getState().updateAC(hallId, { targetTemp: temp });
-                    }}
-                    style={[
-                      styles.presetChip,
-                      {
-                        backgroundColor: ac.targetTemp === temp ? theme.colors.primary : theme.colors.inputBackground,
-                      },
-                    ]}
-                  >
-                    <Text
+                {[18, 20, 22, 24, 26].map((temp) => {
+                  const curTemp = ac.targetTemp || ac.temperature || 24;
+                  return (
+                    <TouchableOpacity
+                      key={temp}
+                      onPress={() => {
+                        services.device.setACTemperature(hallId, temp);
+                        useDeviceStore.getState().updateAC(hallId, { targetTemp: temp, temperature: temp } as any);
+                      }}
                       style={[
-                        styles.presetText,
-                        { color: ac.targetTemp === temp ? '#FFF' : theme.colors.textSecondary },
+                        styles.presetChip,
+                        {
+                          backgroundColor: curTemp === temp ? theme.colors.primary : theme.colors.inputBackground,
+                        },
                       ]}
                     >
-                      {temp}°
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        style={[
+                          styles.presetText,
+                          { color: curTemp === temp ? '#FFF' : theme.colors.textSecondary },
+                        ]}
+                      >
+                        {temp}°
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
 
               {/* AC Mode Selection */}
@@ -314,6 +329,12 @@ export default function ControlsScreen() {
                 ))}
               </View>
             </View>
+          ) : (
+            <View style={[styles.cardBody, { paddingVertical: 12 }]}>
+              <Text style={[styles.standbyText, { color: theme.colors.textTertiary }]}>
+                Air Conditioning in Standby • Turn switch ON to configure
+              </Text>
+            </View>
           )}
         </View>
 
@@ -337,7 +358,7 @@ export default function ControlsScreen() {
                 </Text>
               </TouchableOpacity>
               <Switch
-                value={fan.power}
+                value={isFanOn}
                 onValueChange={handleFanPower}
                 trackColor={{ false: '#767577', true: '#007AFF' }}
                 thumbColor="#FFF"
@@ -345,7 +366,7 @@ export default function ControlsScreen() {
             </View>
           </View>
 
-          {fan.power && (
+          {isFanOn ? (
             <View style={styles.cardBody}>
               <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>SPEED LEVEL</Text>
               <View style={styles.buttonGroup}>
@@ -356,14 +377,14 @@ export default function ControlsScreen() {
                     style={[
                       styles.groupBtn,
                       {
-                        backgroundColor: fan.speed === lvl ? '#007AFF' : theme.colors.inputBackground,
+                        backgroundColor: (fan.speed ?? 2) === lvl ? '#007AFF' : theme.colors.inputBackground,
                       },
                     ]}
                   >
                     <Text
                       style={[
                         styles.groupBtnText,
-                        { color: fan.speed === lvl ? '#FFF' : theme.colors.textSecondary },
+                        { color: (fan.speed ?? 2) === lvl ? '#FFF' : theme.colors.textSecondary },
                       ]}
                     >
                       Level {lvl}
@@ -375,12 +396,18 @@ export default function ControlsScreen() {
               <View style={styles.toggleOptionRow}>
                 <Text style={[styles.toggleOptionText, { color: theme.colors.text }]}>Oscillation Swing</Text>
                 <Switch
-                  value={fan.oscillate}
+                  value={fan.oscillate ?? true}
                   onValueChange={handleFanOscillate}
                   trackColor={{ false: '#767577', true: '#007AFF' }}
                   thumbColor="#FFF"
                 />
               </View>
+            </View>
+          ) : (
+            <View style={[styles.cardBody, { paddingVertical: 12 }]}>
+              <Text style={[styles.standbyText, { color: theme.colors.textTertiary }]}>
+                Ventilation Fan in Standby • Turn switch ON to configure
+              </Text>
             </View>
           )}
         </View>
@@ -651,5 +678,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  standbyText: {
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });

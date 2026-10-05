@@ -133,27 +133,44 @@ export default function CameraScreen() {
       >
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <MaterialCommunityIcons name="close" size={24} color={theme.colors.text} />
+            <MaterialCommunityIcons name="close" size={22} color={theme.colors.text} />
           </TouchableOpacity>
           <Image
             source={require('../../assets/EnviroSync_logo.png')}
             style={styles.headerLogo}
             resizeMode="contain"
           />
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={[styles.title, { color: theme.colors.text }]}>AI Vision Stream</Text>
             <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-              {currentHall.name} • {useLaptopWebcam ? 'Laptop Webcam (Live)' : 'Edge YOLOv8 Model'}
+              {currentHall.name} • {useLaptopWebcam ? 'Laptop Webcam' : 'YOLOv8 Edge Vision'}
             </Text>
           </View>
         </View>
 
         <TouchableOpacity
           onPress={() => setShowIpConfig(!showIpConfig)}
-          style={[styles.liveBadge, { backgroundColor: webcamStatus === 'ONLINE' ? '#34C759' : '#FF9500' }]}
+          style={[
+            styles.ipSetupBtn,
+            {
+              backgroundColor: showIpConfig ? theme.colors.primary : theme.colors.inputBackground,
+              borderColor: theme.colors.borderLight,
+            },
+          ]}
         >
-          <View style={styles.liveDot} />
-          <Text style={styles.liveText}>{webcamStatus === 'ONLINE' ? 'LIVE' : 'IP SETUP'}</Text>
+          <MaterialCommunityIcons
+            name="tune"
+            size={16}
+            color={showIpConfig ? '#FFF' : theme.colors.textSecondary}
+          />
+          <Text
+            style={[
+              styles.ipSetupText,
+              { color: showIpConfig ? '#FFF' : theme.colors.textSecondary },
+            ]}
+          >
+            IP Setup
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -164,7 +181,12 @@ export default function CameraScreen() {
         {/* IP Host Config Box if needed */}
         {showIpConfig && (
           <View style={[styles.ipConfigCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.borderLight }]}>
-            <Text style={[styles.ipLabel, { color: theme.colors.text }]}>Backend Laptop IP Address:</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <MaterialCommunityIcons name="ip-network" size={18} color={theme.colors.primary} />
+              <Text style={[styles.ipLabel, { color: theme.colors.text, marginBottom: 0 }]}>
+                Backend IP Configuration
+              </Text>
+            </View>
             <View style={styles.ipRow}>
               <TextInput
                 style={[styles.ipInput, { backgroundColor: theme.colors.inputBackground, color: theme.colors.text, borderColor: theme.colors.border }]}
@@ -182,7 +204,7 @@ export default function CameraScreen() {
               </TouchableOpacity>
             </View>
             <Text style={[styles.ipHint, { color: theme.colors.textTertiary }]}>
-              Make sure to run: python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+              Server: python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
             </Text>
           </View>
         )}
@@ -194,48 +216,48 @@ export default function CameraScreen() {
           onSelect={(id) => selectHall(id)}
         />
 
-        {/* Camera Source Toggle Banner */}
-        <View style={[styles.sourceCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.borderLight }]}>
-          <View style={styles.sourceLeft}>
-            <View style={[styles.sourceIconBg, { backgroundColor: useLaptopWebcam ? '#34C75920' : theme.colors.primaryGhost }]}>
-              <MaterialCommunityIcons
-                name={useLaptopWebcam ? 'laptop' : 'cctv'}
-                size={24}
-                color={useLaptopWebcam ? '#34C759' : theme.colors.primary}
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.sourceTitle, { color: theme.colors.text }]}>
-                {useLaptopWebcam ? 'Laptop Camera Active (Hall 01)' : 'Virtual Room Vision Feed'}
-              </Text>
-              <Text style={[styles.sourceDesc, { color: theme.colors.textSecondary }]}>
-                {useLaptopWebcam
-                  ? `Live video capturing via Python backend on http://${backendIp}:8000`
-                  : 'Synthesized smart classroom occupancy feed with YOLO bounding boxes.'}
-              </Text>
-            </View>
-          </View>
-
+        {/* Stream Source Segmented Switcher */}
+        <View style={[styles.segmentedContainer, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.borderLight }]}>
           <TouchableOpacity
-            onPress={toggleWebcamSource}
+            onPress={() => {
+              setUseLaptopWebcam(true);
+              fetchCameraFeed();
+            }}
             style={[
-              styles.toggleSourceBtn,
-              { backgroundColor: useLaptopWebcam ? '#34C759' : theme.colors.primary },
+              styles.segmentedTab,
+              useLaptopWebcam && { backgroundColor: theme.colors.primary },
             ]}
           >
             <MaterialCommunityIcons
-              name={useLaptopWebcam ? 'check-circle' : 'camera-switch'}
-              size={18}
-              color="#FFF"
+              name="laptop"
+              size={16}
+              color={useLaptopWebcam ? '#FFF' : theme.colors.textSecondary}
             />
-            <Text style={styles.toggleSourceText}>
-              {useLaptopWebcam ? 'Using Laptop Cam' : 'Switch to Laptop Cam'}
+            <Text style={[styles.segmentedText, { color: useLaptopWebcam ? '#FFF' : theme.colors.textSecondary }]}>
+              Laptop Webcam
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setUseLaptopWebcam(false)}
+            style={[
+              styles.segmentedTab,
+              !useLaptopWebcam && { backgroundColor: theme.colors.primary },
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="robot"
+              size={16}
+              color={!useLaptopWebcam ? '#FFF' : theme.colors.textSecondary}
+            />
+            <Text style={[styles.segmentedText, { color: !useLaptopWebcam ? '#FFF' : theme.colors.textSecondary }]}>
+              AI Simulation
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Video / Stream Viewport Container */}
-        <View style={[styles.viewportCard, { backgroundColor: thermalMode ? '#1a0933' : '#111827' }]}>
+        <View style={[styles.viewportCard, { backgroundColor: thermalMode ? '#1a0933' : '#0B1120', borderColor: theme.colors.borderLight }]}>
           {useLaptopWebcam && liveImageBase64 ? (
             // Live Laptop Webcam Frame Stream
             <Image
@@ -245,30 +267,38 @@ export default function CameraScreen() {
             />
           ) : useLaptopWebcam && webcamStatus === 'OFFLINE' ? (
             <View style={styles.centerLoading}>
-              <MaterialCommunityIcons name="wifi-alert" size={40} color="#FF9500" />
+              <View style={[styles.wifiOffCircle, { backgroundColor: '#FF950015' }]}>
+                <MaterialCommunityIcons name="wifi-off" size={32} color="#FF9500" />
+              </View>
               <Text style={{ color: '#FFF', marginTop: 10, fontSize: 13, fontWeight: '700' }}>
                 Cannot Reach {backendIp}:8000
               </Text>
               <Text style={{ color: '#9CA3AF', fontSize: 11, textAlign: 'center', marginTop: 4, paddingHorizontal: 20 }}>
-                Make sure Python backend is running with --host 0.0.0.0
+                Python server is offline or unreachable on this Wi-Fi network.
               </Text>
-              <TouchableOpacity
-                onPress={fetchCameraFeed}
-                style={{
-                  marginTop: 14,
-                  backgroundColor: theme.colors.primary,
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                }}
-              >
-                <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>Tap to Retry</Text>
-              </TouchableOpacity>
+
+              <View style={styles.offlineActionRow}>
+                <TouchableOpacity
+                  onPress={fetchCameraFeed}
+                  style={[styles.retryBtn, { backgroundColor: theme.colors.primary }]}
+                >
+                  <MaterialCommunityIcons name="refresh" size={14} color="#FFF" />
+                  <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 12 }}>Retry</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setUseLaptopWebcam(false)}
+                  style={[styles.retryBtn, { backgroundColor: theme.colors.inputBackground, borderWidth: 1, borderColor: theme.colors.borderLight }]}
+                >
+                  <MaterialCommunityIcons name="robot" size={14} color={theme.colors.text} />
+                  <Text style={{ color: theme.colors.text, fontWeight: 'bold', fontSize: 12 }}>Use AI Sim</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           ) : useLaptopWebcam ? (
             <View style={styles.centerLoading}>
               <ActivityIndicator size="large" color={theme.colors.primary} />
-              <Text style={{ color: '#FFF', marginTop: 10, fontSize: 12 }}>
+              <Text style={{ color: '#FFF', marginTop: 10, fontSize: 12, fontWeight: '600' }}>
                 Connecting to Laptop Webcam ({backendIp}:8000)...
               </Text>
             </View>
@@ -312,13 +342,13 @@ export default function CameraScreen() {
           {/* Stream Overlay HUD */}
           <View style={styles.streamHudTop}>
             <View style={styles.hudPill}>
-              <MaterialCommunityIcons name="video" size={14} color="#FFF" />
+              <View style={[styles.liveDot, { backgroundColor: useLaptopWebcam && liveImageBase64 ? '#34C759' : '#007AFF' }]} />
               <Text style={styles.hudPillText}>
-                {useLaptopWebcam ? 'Laptop Cam • 15 FPS' : '1080p • 15 FPS'}
+                {useLaptopWebcam ? 'Laptop Cam • 15 FPS' : 'AI Simulation • 15 FPS'}
               </Text>
             </View>
             <View style={styles.hudPill}>
-              <MaterialCommunityIcons name="chip" size={14} color="#34C759" />
+              <MaterialCommunityIcons name="chip" size={13} color="#34C759" />
               <Text style={styles.hudPillText}>{latencyLive.toFixed(0)}ms Latency</Text>
             </View>
           </View>
@@ -328,7 +358,7 @@ export default function CameraScreen() {
               {new Date().toISOString().replace('T', ' ').substring(0, 19)}
             </Text>
             <Text style={styles.hudCameraId}>
-              {useLaptopWebcam ? 'DEVICE-0 (WEBCAM)' : 'CAM-01'} • {currentHall.name}
+              {useLaptopWebcam ? 'DEVICE-0 (WEBCAM)' : 'EDGE-YOLO-01'} • {currentHall.name}
             </Text>
           </View>
         </View>
@@ -437,7 +467,8 @@ const styles = StyleSheet.create({
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    flex: 1,
+    gap: 10,
   },
   headerLogo: {
     width: 32,
@@ -446,32 +477,30 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     padding: 6,
+    marginRight: 2,
   },
   title: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
+    letterSpacing: -0.2,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 1,
   },
-  liveBadge: {
+  ipSetupBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#FFF',
-  },
-  liveText: {
-    color: '#FFF',
-    fontSize: 10,
-    fontWeight: '800',
+  ipSetupText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   scrollContent: {
     padding: 16,
@@ -485,11 +514,11 @@ const styles = StyleSheet.create({
   ipLabel: {
     fontSize: 13,
     fontWeight: '700',
-    marginBottom: 8,
   },
   ipRow: {
     flexDirection: 'row',
     gap: 8,
+    marginTop: 8,
   },
   ipInput: {
     flex: 1,
@@ -514,55 +543,36 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 6,
   },
-  sourceCard: {
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    marginBottom: 16,
-    gap: 12,
-  },
-  sourceLeft: {
+  segmentedContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  sourceIconBg: {
-    width: 44,
-    height: 44,
+    padding: 4,
     borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 1,
+    marginBottom: 14,
+    gap: 4,
   },
-  sourceTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  sourceDesc: {
-    fontSize: 12,
-    marginTop: 2,
-    lineHeight: 16,
-  },
-  toggleSourceBtn: {
+  segmentedTab: {
+    flex: 1,
     flexDirection: 'row',
-    height: 42,
-    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 10,
   },
-  toggleSourceText: {
-    color: '#FFF',
-    fontSize: 14,
+  segmentedText: {
+    fontSize: 12,
     fontWeight: '700',
   },
   viewportCard: {
-    height: 250,
+    height: 240,
     borderRadius: 20,
     overflow: 'hidden',
     position: 'relative',
     marginBottom: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
   },
   webcamImage: {
     width: '100%',
@@ -572,6 +582,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+  },
+  wifiOffCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  offlineActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
   },
   roomPerspective: {
     position: 'absolute',
@@ -636,10 +666,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#00000080',
+    backgroundColor: '#000000A0',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   hudPillText: {
     color: '#FFF',
@@ -650,7 +680,7 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 10,
     fontWeight: '600',
-    backgroundColor: '#00000080',
+    backgroundColor: '#000000A0',
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 4,
@@ -659,10 +689,16 @@ const styles = StyleSheet.create({
     color: '#34C759',
     fontSize: 10,
     fontWeight: '700',
-    backgroundColor: '#00000080',
+    backgroundColor: '#000000A0',
     paddingHorizontal: 6,
     paddingVertical: 3,
     borderRadius: 4,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#34C759',
   },
   controlsRow: {
     flexDirection: 'row',
@@ -675,8 +711,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: 11,
+    borderRadius: 14,
     borderWidth: 1,
   },
   controlToggleText: {

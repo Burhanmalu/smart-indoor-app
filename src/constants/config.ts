@@ -88,23 +88,43 @@ export const SIMULATION_CONFIG = {
 
 // --- Mock Users ---
 export const MOCK_USERS: Record<string, { user: User; password: string }> = {
+  'admin@envirosync.in': {
+    user: {
+      id: 'usr_admin_001',
+      name: 'Dr. Rajesh Sharma',
+      email: 'admin@envirosync.in',
+      role: 'ADMIN',
+      assignedHalls: ['hall_01', 'hall_02'],
+    },
+    password: 'Admin@123',
+  },
   'admin@example.com': {
     user: {
       id: 'usr_admin_001',
-      name: 'Admin User',
+      name: 'Dr. Rajesh Sharma',
       email: 'admin@example.com',
       role: 'ADMIN',
-      assignedHalls: ['hall_01'],
+      assignedHalls: ['hall_01', 'hall_02'],
     },
     password: 'Admin@123',
+  },
+  'user@envirosync.in': {
+    user: {
+      id: 'usr_user_001',
+      name: 'Priya Patel',
+      email: 'user@envirosync.in',
+      role: 'USER',
+      assignedHalls: ['hall_01', 'hall_02'],
+    },
+    password: 'User@123',
   },
   'user@example.com': {
     user: {
       id: 'usr_user_001',
-      name: 'Standard User',
+      name: 'Priya Patel',
       email: 'user@example.com',
       role: 'USER',
-      assignedHalls: ['hall_01'],
+      assignedHalls: ['hall_01', 'hall_02'],
     },
     password: 'User@123',
   },
@@ -117,12 +137,24 @@ export const MOCK_HALLS: Hall[] = [
     name: 'Hall 01',
     capacity: 60,
     status: 'ACTIVE',
-    temperatureThreshold: 28,
-    co2Threshold: 1000,
+    temperatureThreshold: 26, // BEE (Bureau of Energy Efficiency) Standard
+    co2Threshold: 1000,       // CPCB Indoor Standard
     occupancyThreshold: 70,
-    building: 'Science & Tech Wing',
+    building: 'Aryabhata Academic Block',
     floor: 1,
     type: 'CLASSROOM',
+  },
+  {
+    id: 'hall_02',
+    name: 'Hall 02',
+    capacity: 75,
+    status: 'ACTIVE',
+    temperatureThreshold: 25, // BEE Standard
+    co2Threshold: 950,        // CPCB Standard
+    occupancyThreshold: 75,
+    building: 'Aryabhata Academic Block',
+    floor: 2,
+    type: 'LECTURE_HALL',
   },
 ];
 
@@ -130,9 +162,9 @@ export const MOCK_HALLS: Hall[] = [
 export const DEFAULT_AUTOMATION_RULES: AutomationRule[] = [
   {
     id: 'rule_01',
-    name: 'High Temperature Response',
+    name: 'BEE Heatwave Cooling Trigger',
     trigger: 'HIGH_TEMPERATURE',
-    condition: { metric: 'temperature', operator: '>', value: 28 },
+    condition: { metric: 'temperature', operator: '>', value: 27 },
     actions: [
       { device: 'ac', property: 'status', value: 'ON' },
       { device: 'ac', property: 'mode', value: 'COOLING' },
@@ -144,7 +176,7 @@ export const DEFAULT_AUTOMATION_RULES: AutomationRule[] = [
   },
   {
     id: 'rule_02',
-    name: 'High Occupancy Response',
+    name: 'Classroom Density Ventilation',
     trigger: 'HIGH_OCCUPANCY',
     condition: { metric: 'occupancy_percentage', operator: '>', value: 70 },
     actions: [
@@ -157,7 +189,7 @@ export const DEFAULT_AUTOMATION_RULES: AutomationRule[] = [
   },
   {
     id: 'rule_03',
-    name: 'Low Occupancy — Energy Saving',
+    name: 'DISCOM Peak Load Energy Saver',
     trigger: 'LOW_OCCUPANCY',
     condition: { metric: 'occupancy_percentage', operator: '<', value: 10 },
     actions: [
@@ -168,7 +200,7 @@ export const DEFAULT_AUTOMATION_RULES: AutomationRule[] = [
   },
   {
     id: 'rule_04',
-    name: 'High CO₂ Alert',
+    name: 'CPCB Air Quality Safety Threshold',
     trigger: 'HIGH_CO2',
     condition: { metric: 'co2', operator: '>', value: 1000 },
     actions: [],

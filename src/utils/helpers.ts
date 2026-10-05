@@ -89,26 +89,26 @@ export function calculateIAQScore(
   humidity: number,
   co2: number
 ): { score: number; status: MetricStatus } {
-  // Temperature Comfort Penalty (Ideal: 21°C - 25°C)
+  // Temperature Comfort Penalty (ISHRAE & BEE Ideal: 23°C - 26.5°C)
   let tempPenalty = 0;
-  if (temperature < 21) {
-    tempPenalty = Math.min(30, (21 - temperature) * 5);
-  } else if (temperature > 25) {
-    tempPenalty = Math.min(35, (temperature - 25) * 6);
+  if (temperature < 22) {
+    tempPenalty = Math.min(30, (22 - temperature) * 4);
+  } else if (temperature > 26.5) {
+    tempPenalty = Math.min(35, (temperature - 26.5) * 5);
   }
 
-  // Humidity Comfort Penalty (Ideal: 40% - 60%)
+  // Humidity Comfort Penalty (Ideal: 40% - 65%)
   let humPenalty = 0;
   if (humidity < 40) {
     humPenalty = Math.min(25, (40 - humidity) * 1.5);
-  } else if (humidity > 60) {
-    humPenalty = Math.min(30, (humidity - 60) * 1.8);
+  } else if (humidity > 65) {
+    humPenalty = Math.min(30, (humidity - 65) * 1.6);
   }
 
-  // CO2 Quality Penalty (Ideal: < 600 ppm)
+  // CO2 Quality Penalty (CPCB Standard: Ideal < 700 ppm)
   let co2Penalty = 0;
-  if (co2 > 600) {
-    co2Penalty = Math.min(40, ((co2 - 600) / 600) * 35);
+  if (co2 > 700) {
+    co2Penalty = Math.min(40, ((co2 - 700) / 600) * 35);
   }
 
   const rawScore = 100 - (tempPenalty + humPenalty + co2Penalty);

@@ -23,10 +23,10 @@ const sensorState: Record<string, EnvironmentData> = {};
 export function initializeSensorData(hallId: string, capacity: number): EnvironmentData {
   const data: EnvironmentData = {
     hallId,
-    temperature: DEMO_DEFAULTS.temperature + (Math.random() - 0.5) * 2,
-    humidity: DEMO_DEFAULTS.humidity + (Math.random() - 0.5) * 5,
-    co2: DEMO_DEFAULTS.co2 + (Math.random() - 0.5) * 50,
-    light: DEMO_DEFAULTS.light + (Math.random() - 0.5) * 30,
+    temperature: Number((DEMO_DEFAULTS.temperature + (Math.random() - 0.5) * 2).toFixed(1)),
+    humidity: Number((DEMO_DEFAULTS.humidity + (Math.random() - 0.5) * 5).toFixed(1)),
+    co2: Math.round(DEMO_DEFAULTS.co2 + (Math.random() - 0.5) * 50),
+    light: Math.round(DEMO_DEFAULTS.light + (Math.random() - 0.5) * 30),
     occupancy: Math.round(capacity * (DEMO_DEFAULTS.occupancy / 100)),
     capacity,
     timestamp: new Date().toISOString(),
@@ -85,22 +85,25 @@ export function getDefaultDeviceState(hallId: string): DeviceState {
   return {
     hallId,
     ac: {
-      status: 'OFF',
+      status: 'ON',
       temperature: 24,
-      mode: 'AUTO',
+      targetTemp: 24,
+      mode: 'COOLING',
       fanSpeed: 'AUTO',
       controlMode: 'AUTO',
-    },
+    } as any,
     fan: {
       status: 'ON',
-      speed: 'LOW',
+      speed: 2,
+      oscillate: true,
       controlMode: 'AUTO',
-    },
+    } as any,
     curtain: {
       status: 'OPEN',
       position: 80,
+      targetPosition: 80,
       controlMode: 'AUTO',
-    },
+    } as any,
     timestamp: new Date().toISOString(),
   };
 }

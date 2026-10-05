@@ -1,5 +1,5 @@
 // ==========================================
-// Spaces / Rooms Screen — Multi-Zone Overview (Polished UI/UX)
+// Spaces / Rooms Screen — Multi-Zone Overview & Add Space
 // ==========================================
 
 import React, { useState } from 'react';
@@ -11,6 +11,10 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
+  Modal,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -18,18 +22,28 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useHallStore, useEnvironmentStore, useDeviceStore } from '../../src/stores';
 import { calculateIAQScore, getStatusColor } from '../../src/utils/helpers';
-import { HallType } from '../../src/models/types';
+import { HallType, Hall } from '../../src/models/types';
+import { initializeSensorData, getSensorData } from '../../src/mock/mockData';
+import { services } from '../../src/services/mockServices';
 
 export default function RoomsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { theme, isDark, toggleTheme } = useTheme();
-  const { halls, selectedHallId, selectHall } = useHallStore();
+  const { halls, selectedHallId, selectHall, addHall, deleteHall } = useHallStore();
   const allEnvData = useEnvironmentStore((s) => s.data);
   const allDevices = useDeviceStore((s) => s.devices);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'ALL' | HallType>('ALL');
+
+  // Modal & Form State for Adding New Space
+  const [isAddingModal, setIsAddingModal] = useState(false);
+  const [name, setName] = useState('');
+  const [building, setBuilding] = useState('Aryabhata Academic Block');
+  const [floor, setFloor] = useState('2');
+  const [capacity, setCapacity] = useState('60');
+  const [type, setType] = useState<HallType>('CLASSROOM');
 
   const filterOptions: ('ALL' | HallType)[] = [
     'ALL',
@@ -37,13 +51,14 @@ export default function RoomsScreen() {
     'LECTURE_HALL',
     'MEETING_ROOM',
     'CONFERENCE_HALL',
+    'LABORATORY',
     'OFFICE',
   ];
 
   const filteredHalls = halls.filter((h) => {
     const matchesSearch =
       h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      h.building.toLowerCase().includes(searchQuery.toLowerCase());
+      (h.building ? h.building.toLowerCase().includes(searchQuery.toLowerCase()) : false);
     const matchesType = selectedFilter === 'ALL' || h.type === selectedFilter;
     return matchesSearch && matchesType;
   });
@@ -54,6 +69,45 @@ export default function RoomsScreen() {
   }, 0);
 
   const totalCapacity = halls.reduce((sum, h) => sum + h.capacity, 0);
+
+  const handleCreateSpace = () => {
+    if (!name.trim()) {
+      Alert.alert('Required', 'Please enter a name for the space.');
+      return;
+    }
+
+    const newId = `hall_${Date.now()}`;
+    const cap = parseInt(capacity, 10) || 60;
+    const floorNum = parseInt(floor, 10) || 1;
+
+    const newSpace: Hall = {
+      id: newId,
+      name: name.trim(),
+      capacity: cap,
+      status: 'ACTIVE',
+      temperatureThreshold: 26, // BEE Standard
+      co2Threshold: 1000,       // CPCB Standard
+      occupancyThreshold: 70,
+      building: building.trim() || 'Aryabhata Academic Block',
+      floor: floorNum,
+      type,
+    };
+
+    addHall(newSpace);
+
+    // Initialize environment & device stores for the new space
+    initializeSensorData(newId, cap);
+    const initialEnv = getSensorData(newId);
+    useEnvironmentStore.getState().setEnvironmentData(newId, initialEnv);
+
+    const initialDevice = services.device.getOrInit(newId);
+    useDeviceStore.getState().setDeviceState(newId, initialDevice);
+
+    selectHall(newId);
+    setIsAddingModal(false);
+    setName('');
+    Alert.alert('Space Created', `${newSpace.name} has been added to monitored zones.`);
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? 'transparent' : theme.colors.background }]}>
@@ -197,10 +251,10 @@ export default function RoomsScreen() {
                         color={theme.colors.primary}
                       />
                     </View>
-                    <View>
+                    <View style={{ flex: 1 }}>
                       <Text style={[styles.hallName, { color: theme.colors.text }]}>{hall.name}</Text>
                       <Text style={[styles.hallLocation, { color: theme.colors.textTertiary }]}>
-                        {hall.building} • Floor {hall.floor}
+                        {hall.building || 'Aryabhata Academic Block'} • Floor {hall.floor ?? 1}
                       </Text>
                     </View>
                   </View>
@@ -229,7 +283,7 @@ export default function RoomsScreen() {
                   <View style={styles.metricItem}>
                     <MaterialCommunityIcons name="molecule-co2" size={16} color={theme.colors.co2} />
                     <Text style={[styles.metricValue, { color: theme.colors.text }]}>
-                      {env.co2} ppm
+                      {Math.round(env.co2)} ppm
                     </Text>
                   </View>
                   <View style={styles.metricItem}>
@@ -287,8 +341,254 @@ export default function RoomsScreen() {
               </TouchableOpacity>
             );
           })}
+
+          {/* Prominent Add Space Button Card */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setIsAddingModal(true)}
+            style={[
+              styles.addSpaceCard,
+              {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : theme.colors.card,
+                borderColor: theme.colors.primary + '60',
+              },
+            ]}
+          >
+            <View style={[styles.addIconCircle, { backgroundColor: theme.colors.primaryGhost }]}>
+              <MaterialCommunityIcons name="plus-circle" size={32} color={theme.colors.primary} />
+            </View>
+            <Text style={[styles.addCardTitle, { color: theme.colors.primary }]}>+ Add Monitored Space</Text>
+            <Text style={[styles.addCardDesc, { color: theme.colors.textSecondary }]}>
+              Deploy autonomous comfort control & IoT telemetry to a new hall, lab, or auditorium
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Add New Space Modal */}
+      <Modal
+        visible={isAddingModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setIsAddingModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.modalContent, { backgroundColor: theme.colors.card, borderColor: theme.colors.borderLight }]}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderLeft}>
+                <View style={[styles.modalIconBox, { backgroundColor: theme.colors.primaryGhost }]}>
+                  <MaterialCommunityIcons name="domain-plus" size={22} color={theme.colors.primary} />
+                </View>
+                <View>
+                  <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Add New Space</Text>
+                  <Text style={[styles.modalSub, { color: theme.colors.textSecondary }]}>
+                    Configure room details & thresholds
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setIsAddingModal(false)} style={styles.modalCloseBtn}>
+                <MaterialCommunityIcons name="close" size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.formScroll}>
+              {/* Quick Presets */}
+              <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>QUICK PRESETS</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+                {[
+                  { name: 'Hall 02', building: 'Aryabhata Academic Block', floor: '2', capacity: '75', type: 'LECTURE_HALL' as HallType },
+                  { name: 'IoT & AI Research Lab', building: 'Aryabhata Academic Block', floor: '3', capacity: '45', type: 'LABORATORY' as HallType },
+                  { name: 'APJ Kalam Seminar Hall', building: 'Dr. Kalam Tech Centre', floor: '1', capacity: '120', type: 'CONFERENCE_HALL' as HallType },
+                  { name: 'Smart Classroom 102', building: 'Aryabhata Academic Block', floor: '1', capacity: '60', type: 'CLASSROOM' as HallType },
+                  { name: 'Executive Meeting Room', building: 'Administrative Tower', floor: '4', capacity: '20', type: 'MEETING_ROOM' as HallType },
+                ].map((preset, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={() => {
+                      setName(preset.name);
+                      setBuilding(preset.building);
+                      setFloor(preset.floor);
+                      setCapacity(preset.capacity);
+                      setType(preset.type);
+                    }}
+                    style={[
+                      styles.presetChip,
+                      {
+                        backgroundColor: name === preset.name ? theme.colors.primaryGhost : theme.colors.inputBackground,
+                        borderColor: name === preset.name ? theme.colors.primary : theme.colors.borderLight,
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name={name === preset.name ? 'check-circle' : 'plus-circle-outline'}
+                      size={14}
+                      color={name === preset.name ? theme.colors.primary : theme.colors.textTertiary}
+                    />
+                    <Text
+                      style={[
+                        styles.presetChipText,
+                        { color: name === preset.name ? theme.colors.primary : theme.colors.text },
+                      ]}
+                    >
+                      {preset.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Space Name */}
+              <Text style={[styles.inputLabel, { color: theme.colors.textSecondary }]}>SPACE / ROOM NAME</Text>
+              <TextInput
+                style={[
+                  styles.textInput,
+                  {
+                    color: theme.colors.text,
+                    backgroundColor: theme.colors.inputBackground,
+                    borderColor: theme.colors.borderLight,
+                  },
+                ]}
+                placeholder="e.g. Hall 02, Seminar Hall 02, IoT Lab"
+                placeholderTextColor={theme.colors.textTertiary}
+                value={name}
+                onChangeText={setName}
+              />
+
+              {/* Building / Block */}
+              <Text style={[styles.inputLabel, { color: theme.colors.textSecondary, marginTop: 12 }]}>
+                BUILDING / COMPLEX
+              </Text>
+              <TextInput
+                style={[
+                  styles.textInput,
+                  {
+                    color: theme.colors.text,
+                    backgroundColor: theme.colors.inputBackground,
+                    borderColor: theme.colors.borderLight,
+                  },
+                ]}
+                placeholder="e.g. Aryabhata Academic Block, APJ Kalam Complex"
+                placeholderTextColor={theme.colors.textTertiary}
+                value={building}
+                onChangeText={setBuilding}
+              />
+
+              {/* Space Type Selector */}
+              <Text style={[styles.inputLabel, { color: theme.colors.textSecondary, marginTop: 12 }]}>
+                SPACE CLASSIFICATION
+              </Text>
+              <View style={styles.typeGrid}>
+                {[
+                  { key: 'CLASSROOM', label: 'Classroom', icon: 'school-outline' },
+                  { key: 'LECTURE_HALL', label: 'Lecture Hall', icon: 'theater' },
+                  { key: 'LABORATORY', label: 'Laboratory', icon: 'flask-outline' },
+                  { key: 'MEETING_ROOM', label: 'Meeting Room', icon: 'account-group' },
+                  { key: 'CONFERENCE_HALL', label: 'Auditorium', icon: 'domain' },
+                  { key: 'OFFICE', label: 'Faculty Office', icon: 'briefcase-outline' },
+                ].map((item) => (
+                  <TouchableOpacity
+                    key={item.key}
+                    onPress={() => setType(item.key as HallType)}
+                    style={[
+                      styles.typeChip,
+                      {
+                        backgroundColor: type === item.key ? theme.colors.primary : theme.colors.inputBackground,
+                        borderColor: type === item.key ? theme.colors.primary : theme.colors.borderLight,
+                      },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name={item.icon as any}
+                      size={14}
+                      color={type === item.key ? '#FFF' : theme.colors.textSecondary}
+                    />
+                    <Text
+                      style={[
+                        styles.typeChipText,
+                        { color: type === item.key ? '#FFF' : theme.colors.textSecondary },
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Floor & Capacity */}
+              <View style={styles.formRow}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={[styles.inputLabel, { color: theme.colors.textSecondary, marginTop: 12 }]}>FLOOR</Text>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      {
+                        color: theme.colors.text,
+                        backgroundColor: theme.colors.inputBackground,
+                        borderColor: theme.colors.borderLight,
+                      },
+                    ]}
+                    placeholder="Floor number"
+                    placeholderTextColor={theme.colors.textTertiary}
+                    keyboardType="number-pad"
+                    value={floor}
+                    onChangeText={setFloor}
+                  />
+                </View>
+
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={[styles.inputLabel, { color: theme.colors.textSecondary, marginTop: 12 }]}>
+                    MAX CAPACITY
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.textInput,
+                      {
+                        color: theme.colors.text,
+                        backgroundColor: theme.colors.inputBackground,
+                        borderColor: theme.colors.borderLight,
+                      },
+                    ]}
+                    placeholder="Occupants"
+                    placeholderTextColor={theme.colors.textTertiary}
+                    keyboardType="number-pad"
+                    value={capacity}
+                    onChangeText={setCapacity}
+                  />
+                </View>
+              </View>
+
+              {/* Indian Standards Note */}
+              <View style={[styles.standardNoteBox, { backgroundColor: theme.colors.primaryGhost }]}>
+                <MaterialCommunityIcons name="shield-check-outline" size={18} color={theme.colors.primary} />
+                <Text style={[styles.standardNoteText, { color: theme.colors.primary }]}>
+                  Auto-calibrated with BEE (26°C baseline) and CPCB (1000 ppm CO₂) indoor comfort standards.
+                </Text>
+              </View>
+
+              {/* Submit & Cancel Buttons */}
+              <View style={styles.modalBtnRow}>
+                <TouchableOpacity
+                  onPress={() => setIsAddingModal(false)}
+                  style={[styles.cancelBtn, { borderColor: theme.colors.borderLight }]}
+                >
+                  <Text style={[styles.cancelBtnText, { color: theme.colors.textSecondary }]}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleCreateSpace}
+                  style={[styles.createBtn, { backgroundColor: theme.colors.primary }]}
+                >
+                  <MaterialCommunityIcons name="check" size={18} color="#FFF" />
+                  <Text style={styles.createBtnText}>Add Space</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
@@ -327,9 +627,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   scenarioBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -351,31 +651,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   filterScroll: {
-    flexGrow: 0,
     marginBottom: 16,
   },
   filterChip: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
     marginRight: 8,
+    borderWidth: 1,
   },
   filterText: {
     fontSize: 12,
     fontWeight: '700',
   },
   hallsList: {
-    gap: 12,
+    gap: 14,
   },
   hallCard: {
     borderRadius: 20,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    padding: 18,
+    borderWidth: 1,
   },
   hallCardHeader: {
     flexDirection: 'row',
@@ -387,6 +682,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
   },
   hallIconBg: {
     width: 44,
@@ -397,10 +693,12 @@ const styles = StyleSheet.create({
   },
   hallName: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: -0.3,
   },
   hallLocation: {
     fontSize: 12,
+    fontWeight: '500',
     marginTop: 2,
   },
   iaqBadgeSmall: {
@@ -415,37 +713,37 @@ const styles = StyleSheet.create({
   metricsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
-    marginBottom: 10,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(150, 150, 150, 0.08)',
   },
   metricItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
   },
   metricValue: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
   },
   hallCardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
+    marginTop: 12,
+    paddingTop: 8,
   },
   deviceIndicators: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   devPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: 'rgba(150, 150, 150, 0.08)',
   },
   devPillText: {
     fontSize: 11,
@@ -463,7 +761,174 @@ const styles = StyleSheet.create({
   },
   currentSelectedText: {
     color: '#FFF',
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
+  },
+  addSpaceCard: {
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+  },
+  addIconCircle: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  addCardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  addCardDesc: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
+    paddingHorizontal: 20,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 22,
+    borderTopWidth: 1,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  modalIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  modalSub: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  modalCloseBtn: {
+    padding: 6,
+  },
+  formScroll: {
+    marginBottom: 10,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    marginBottom: 6,
+  },
+  textInput: {
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    fontSize: 14,
+  },
+  typeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  typeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  typeChipText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  formRow: {
+    flexDirection: 'row',
+  },
+  standardNoteBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  standardNoteText: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '600',
+    lineHeight: 16,
+  },
+  modalBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 20,
+    marginBottom: 16,
+  },
+  cancelBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  createBtn: {
+    flex: 2,
+    height: 48,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  createBtnText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  presetChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginRight: 8,
+  },
+  presetChipText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

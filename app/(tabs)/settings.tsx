@@ -125,15 +125,15 @@ export default function SettingsScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.profileName, { color: theme.colors.text }]}>
-                {user?.name || 'Alex Rivera'}
+                {user?.name || 'Dr. Rajesh Sharma'}
               </Text>
               <Text style={[styles.profileEmail, { color: theme.colors.textSecondary }]}>
-                {user?.email || 'admin@envirosync.ai'}
+                {user?.email || 'admin@envirosync.in'}
               </Text>
               <View style={[styles.roleBadge, { backgroundColor: theme.colors.primaryGhost }]}>
                 <View style={[styles.roleDot, { backgroundColor: theme.colors.primary }]} />
                 <Text style={[styles.roleText, { color: theme.colors.primary }]}>
-                  {user?.role?.replace('_', ' ') || 'FACILITY MANAGER'}
+                  {user?.role?.replace('_', ' ') || 'FACILITY DIRECTOR'}
                 </Text>
               </View>
             </View>
@@ -297,7 +297,7 @@ export default function SettingsScreen() {
             EnviroSync AI Platform
           </Text>
           <Text style={[styles.footerText, { color: theme.colors.textTertiary, marginTop: 2 }]}>
-            Autonomous Building Engine • v1.0.0
+            BEE & ISHRAE Standard • India Edition v1.0.0
           </Text>
         </View>
       </ScrollView>

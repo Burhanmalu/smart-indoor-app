@@ -27,7 +27,7 @@ export default function LoginScreen() {
   const { theme, isDark, toggleTheme } = useTheme();
   const { setUser } = useAuthStore();
 
-  const [email, setEmail] = useState('admin@envirosync.io');
+  const [email, setEmail] = useState('admin@envirosync.in');
   const [password, setPassword] = useState('Admin@123456');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -39,11 +39,11 @@ export default function LoginScreen() {
         id: `usr_${Date.now()}`,
         name:
           selectedRole === 'ADMIN'
-            ? 'System Administrator'
+            ? 'Dr. Rajesh Sharma (Admin)'
             : selectedRole === 'FACILITY_MANAGER'
-            ? 'Alex Rivera (Facility Mgr)'
-            : 'John Doe (Occupant)',
-        email: email || 'user@envirosync.io',
+            ? 'Priya Patel (Facility Lead)'
+            : 'Rahul Verma (Faculty)',
+        email: email || 'user@envirosync.in',
         role: selectedRole,
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
       },
@@ -56,13 +56,13 @@ export default function LoginScreen() {
   const handleRoleSelect = (role: UserRole) => {
     setSelectedRole(role);
     if (role === 'ADMIN') {
-      setEmail('admin@envirosync.io');
+      setEmail('admin@envirosync.in');
       setPassword('Admin@123456');
     } else if (role === 'FACILITY_MANAGER') {
-      setEmail('manager@envirosync.io');
+      setEmail('manager@envirosync.in');
       setPassword('Manager@123456');
     } else {
-      setEmail('user@envirosync.io');
+      setEmail('user@envirosync.in');
       setPassword('User@123456');
     }
   };
