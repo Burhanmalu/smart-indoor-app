@@ -28,10 +28,12 @@ interface AuthState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
+  rememberMe: boolean;
   isLoading: boolean;
   error: string | null;
 
-  setUser: (user: User, token: string) => void;
+  setUser: (user: User, token: string, remember?: boolean) => void;
+  setRememberMe: (remember: boolean) => void;
   logout: () => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
@@ -41,13 +43,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   token: null,
   isAuthenticated: false,
+  rememberMe: false,
   isLoading: false,
   error: null,
 
-  setUser: (user, token) =>
-    set({ user, token, isAuthenticated: true, error: null }),
+  setUser: (user, token, remember = false) =>
+    set({ user, token, isAuthenticated: true, rememberMe: remember, error: null }),
+  setRememberMe: (rememberMe) => set({ rememberMe }),
   logout: () =>
-    set({ user: null, token: null, isAuthenticated: false, error: null }),
+    set({ user: null, token: null, isAuthenticated: false, rememberMe: false, error: null }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
 }));

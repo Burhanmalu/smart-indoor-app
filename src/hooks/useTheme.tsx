@@ -13,13 +13,15 @@ interface ThemeContextValue {
   theme: Theme;
   themeMode: ThemeMode;
   setThemeMode: (mode: ThemeMode) => void;
+  toggleTheme: () => void;
   isDark: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
   theme: lightTheme,
   themeMode: 'system',
-  setThemeMode: () => {},
+  setThemeMode: () => { },
+  toggleTheme: () => { },
   isDark: false,
 });
 
@@ -43,10 +45,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const isDark =
     themeMode === 'dark' || (themeMode === 'system' && systemScheme === 'dark');
 
+  const toggleTheme = useCallback(() => {
+    const nextMode: ThemeMode = isDark ? 'light' : 'dark';
+    setThemeModeState(nextMode);
+    AsyncStorage.setItem(STORAGE_KEYS.THEME_MODE, nextMode);
+  }, [isDark]);
+
   const theme = isDark ? darkTheme : lightTheme;
 
   return (
-    <ThemeContext.Provider value={{ theme, themeMode, setThemeMode, isDark }}>
+    <ThemeContext.Provider value={{ theme, themeMode, setThemeMode, toggleTheme, isDark }}>
       {children}
     </ThemeContext.Provider>
   );

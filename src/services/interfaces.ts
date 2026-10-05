@@ -58,6 +58,14 @@ export interface IDeviceService {
   updateFan(hallId: string, updates: Partial<FanState>): Promise<DeviceState>;
   updateCurtain(hallId: string, updates: Partial<CurtainState>): Promise<DeviceState>;
   setControlMode(hallId: string, device: string, mode: ControlMode): Promise<DeviceState>;
+  setACPower(hallId: string, power: boolean): Promise<DeviceState>;
+  setACTemperature(hallId: string, temp: number): Promise<DeviceState>;
+  setACMode(hallId: string, mode: ACMode): Promise<DeviceState>;
+  setACFanSpeed(hallId: string, speed: FanSpeed): Promise<DeviceState>;
+  setFanPower(hallId: string, power: boolean): Promise<DeviceState>;
+  setFanSpeed(hallId: string, speed: number): Promise<DeviceState>;
+  setFanOscillation(hallId: string, oscillate: boolean): Promise<DeviceState>;
+  setCurtainPosition(hallId: string, position: number): Promise<DeviceState>;
 }
 
 // --- Automation ---

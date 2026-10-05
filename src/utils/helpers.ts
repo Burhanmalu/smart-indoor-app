@@ -56,6 +56,80 @@ export function getOccupancyStatus(percentage: number): MetricStatus {
 }
 
 /**
+ * Universal metric status resolver
+ */
+export function getMetricStatus(
+  metric: 'temperature' | 'humidity' | 'co2' | 'light' | 'occupancy' | string,
+  value: number,
+  threshold?: number
+): MetricStatus {
+  switch (metric.toLowerCase()) {
+    case 'temperature':
+    case 'temp':
+      return getTemperatureStatus(value);
+    case 'humidity':
+    case 'hum':
+      return getHumidityStatus(value);
+    case 'co2':
+      return getCO2Status(value, threshold);
+    case 'light':
+      return getLightStatus(value);
+    case 'occupancy':
+      return getOccupancyStatus(value);
+    default:
+      return 'NORMAL';
+  }
+}
+
+/**
+ * Calculate composite Indoor Air Quality (IAQ) and Comfort score (0-100)
+ */
+export function calculateIAQScore(
+  temperature: number,
+  humidity: number,
+  co2: number
+): { score: number; status: MetricStatus } {
+  // Temperature Comfort Penalty (Ideal: 21°C - 25°C)
+  let tempPenalty = 0;
+  if (temperature < 21) {
+    tempPenalty = Math.min(30, (21 - temperature) * 5);
+  } else if (temperature > 25) {
+    tempPenalty = Math.min(35, (temperature - 25) * 6);
+  }
+
+  // Humidity Comfort Penalty (Ideal: 40% - 60%)
+  let humPenalty = 0;
+  if (humidity < 40) {
+    humPenalty = Math.min(25, (40 - humidity) * 1.5);
+  } else if (humidity > 60) {
+    humPenalty = Math.min(30, (humidity - 60) * 1.8);
+  }
+
+  // CO2 Quality Penalty (Ideal: < 600 ppm)
+  let co2Penalty = 0;
+  if (co2 > 600) {
+    co2Penalty = Math.min(40, ((co2 - 600) / 600) * 35);
+  }
+
+  const rawScore = 100 - (tempPenalty + humPenalty + co2Penalty);
+  const score = Math.max(10, Math.min(100, Math.round(rawScore)));
+
+  let status: MetricStatus = 'GOOD';
+  if (score >= 85) {
+    status = 'GOOD';
+  } else if (score >= 70) {
+    status = 'NORMAL';
+  } else if (score >= 50) {
+    status = 'WARNING';
+  } else {
+    status = 'CRITICAL';
+  }
+
+  return { score, status };
+}
+
+
+/**
  * Get color for a metric status
  */
 export function getStatusColor(status: MetricStatus): string {

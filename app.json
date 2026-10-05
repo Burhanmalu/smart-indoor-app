@@ -1,25 +1,39 @@
 {
   "expo": {
-    "name": "smart-indoor-app",
-    "slug": "smart-indoor-app",
+    "name": "EnviroSync",
+    "slug": "envirosync",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "icon": "./assets/EnviroSync_logo.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "envirosync",
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundColor": "#0A84FF",
+        "foregroundImage": "./assets/EnviroSync_logo.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "package": "com.envirosync.app"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/EnviroSync_logo.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-secure-store",
+      "expo-splash-screen",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "envirosync-smart-indoor"
+      }
     }
   }
 }
